@@ -257,10 +257,11 @@ function renderReport(votes) {
   document.getElementById('r-votes').textContent = total;
   var provMap = {};
   votes.forEach(function(v) {
-    if (!provMap[v.province_id]) provMap[v.province_id] = { name: v.province_name, count: 0, cities: {} };
-    provMap[v.province_id].count++;
+    var key = (v.province_name || v.province_id || '').trim().toLowerCase();
+    if (!provMap[key]) provMap[key] = { name: v.province_name || v.province_id, count: 0, cities: {} };
+    provMap[key].count++;
     var city = (v.city || '(sin ciudad)').trim();
-    provMap[v.province_id].cities[city] = (provMap[v.province_id].cities[city] || 0) + 1;
+    provMap[key].cities[city] = (provMap[key].cities[city] || 0) + 1;
   });
   var sorted = Object.values(provMap).sort(function(a,b) { return b.count - a.count; });
   document.getElementById('r-provs').textContent = sorted.length;
