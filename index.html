@@ -5,6 +5,314 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>¿Dónde querés ver a Pablo Cordonet?</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #06111f; --card: #0c1e33; --border: #1a3550;
+      --accent: #2d9cdb; --yellow: #f5d000; --ydim: #f5d00022;
+      --text: #ddeeff; --muted: #5a82a0; --danger: #f87171;
+    }
+    body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .view { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px 14px; }
+    .hidden { display: none !important; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 28px 22px; width: 100%; max-width: 420px; }
+    .card.narrow { max-width: 340px; }
+    .hero-tag { display: inline-block; background: var(--ydim); color: var(--yellow); border: 1px solid #f5d00044; border-radius: 20px; padding: 4px 14px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 14px; }
+    h1 { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: .03em; line-height: 1.05; color: var(--yellow); margin-bottom: 12px; }
+    h2 { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: var(--yellow); margin-bottom: 8px; }
+    .sub { color: var(--muted); font-size: 13px; line-height: 1.7; margin-bottom: 16px; }
+    .stats-row { display: flex; gap: 8px; margin-bottom: 18px; }
+    .stat-box { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: center; }
+    .stat-n { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--yellow); }
+    .stat-l { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .btn { border: none; border-radius: 10px; padding: 13px 18px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s; width: 100%; margin-top: 8px; display: block; }
+    .btn-primary { background: var(--yellow); color: var(--bg); }
+    .btn-primary:hover { background: #fde047; }
+    .btn-primary:disabled { opacity: .35; cursor: not-allowed; }
+    .btn-secondary { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--text); }
+    .field-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+    select, input[type="text"], input[type="password"] {
+      width: 100%; padding: 13px 14px; background: var(--bg);
+      border: 1.5px solid var(--border); border-radius: 10px; color: var(--text);
+      font-size: 15px; font-family: inherit; outline: none; transition: border-color .15s; margin-bottom: 14px;
+      appearance: none; -webkit-appearance: none;
+    }
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235a82a0' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+    select option { background: #0c1e33; color: #ddeeff; }
+    select:focus, input:focus { border-color: var(--accent); }
+    input::placeholder { color: #334f6a; }
+    .err-msg { color: var(--danger); font-size: 13px; margin-bottom: 8px; display: none; }
+    .err-msg.show { display: block; }
+    .city-wrap { display: none; }
+    .city-wrap.show { display: block; }
+    #view-report { min-height: 100vh; padding: 24px 14px; }
+    .report-inner { max-width: 640px; margin: 0 auto; }
+    .report-top h2 { font-family:'Bebas Neue',sans-serif; font-size:28px; color:var(--yellow); }
+    .report-top p { color:var(--muted); font-size:12px; margin:2px 0 14px; }
+    .rep-card { background:var(--card); border:1px solid var(--border); border-radius:12px; margin-bottom:6px; overflow:hidden; }
+    .rep-header { padding:13px 16px; display:flex; align-items:center; gap:10px; cursor:pointer; transition:background .12s; }
+    .rep-header:hover { background:#0f2540; }
+    .rep-rank { font-family:'Bebas Neue',sans-serif; font-size:16px; color:var(--yellow); width:22px; flex-shrink:0; }
+    .rep-name { font-weight:700; color:var(--text); flex:1; font-size:13px; }
+    .rep-bar-wrap { display:flex; align-items:center; gap:6px; }
+    .rep-bar-track { width:50px; height:4px; background:var(--bg); border-radius:2px; overflow:hidden; }
+    .rep-bar-fill { height:100%; background:var(--accent); border-radius:2px; }
+    .rep-pct { font-size:12px; font-weight:700; color:var(--accent); min-width:28px; text-align:right; }
+    .rep-count { font-size:11px; color:var(--muted); min-width:44px; text-align:right; }
+    .chevron { color:var(--muted); font-size:10px; transition:transform .2s; flex-shrink:0; }
+    .rep-card.open .chevron { transform:rotate(180deg); }
+    .rep-cities { display:none; padding:4px 16px 12px; border-top:1px solid #0a1828; }
+    .rep-card.open .rep-cities { display:block; }
+    .city-row { display:flex; align-items:center; gap:8px; padding:7px 0; border-top:1px solid #0a1828; }
+    .city-row:first-child { border-top:none; margin-top:6px; }
+    .medal { width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; flex-shrink:0; }
+    .m1 { background:#f5d00020; border:2px solid #f5d000; color:#f5d000; }
+    .m2 { background:#94a3b820; border:2px solid #94a3b8; color:#94a3b8; }
+    .m3 { background:#cd7c2f20; border:2px solid #cd7c2f; color:#cd7c2f; }
+    .city-name { flex:1; font-size:12px; color:var(--text); font-weight:600; }
+    .city-votes { font-size:11px; color:var(--muted); }
+    .footer-note { color:#1a3550; font-size:11px; text-align:center; margin-top:14px; padding-bottom:24px; }
+  </style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="view-home" class="view">
+  <div class="card">
+    <div class="hero-tag">🗳️ Encuesta pública · Anónima</div>
+    <h1>¿Dónde te gustaría ver a Pablo Cordonet?</h1>
+    <p class="sub">Elegí una provincia y la ciudad. Tu voto es anónimo y forma parte del mapa de resultados.</p>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-n" id="home-votes">–</div><div class="stat-l">votos</div></div>
+      <div class="stat-box"><div class="stat-n" id="home-provs">–</div><div class="stat-l">provincias</div></div>
+    </div>
+    <button class="btn btn-primary" onclick="showView('survey')">Votar ahora →</button>
+    <button class="btn btn-secondary" onclick="showView('login')" style="margin-top:8px">Ver resultados 🔒</button>
+  </div>
+</div>
+
+<!-- SURVEY -->
+<div id="view-survey" class="view hidden">
+  <div class="card">
+    <h2>¿Dónde querés verlo?</h2>
+    <p class="sub">Seleccioná la provincia y escribí la ciudad.</p>
+
+    <div class="field-label">Provincia</div>
+    <select id="prov-select" onchange="onProvChange()">
+      <option value="">— Seleccioná una provincia —</option>
+      <option>Buenos Aires</option>
+      <option>CABA</option>
+      <option>Catamarca</option>
+      <option>Chaco</option>
+      <option>Chubut</option>
+      <option>Córdoba</option>
+      <option>Corrientes</option>
+      <option>Entre Ríos</option>
+      <option>Formosa</option>
+      <option>Jujuy</option>
+      <option>La Pampa</option>
+      <option>La Rioja</option>
+      <option>Mendoza</option>
+      <option>Misiones</option>
+      <option>Neuquén</option>
+      <option>Río Negro</option>
+      <option>Salta</option>
+      <option>San Juan</option>
+      <option>San Luis</option>
+      <option>Santa Cruz</option>
+      <option>Santa Fe</option>
+      <option>Santiago del Estero</option>
+      <option>Tierra del Fuego</option>
+      <option>Tucumán</option>
+    </select>
+
+    <div class="city-wrap" id="city-wrap">
+      <div class="field-label">Ciudad</div>
+      <input type="text" id="city-input" placeholder="¿En qué ciudad?" maxlength="60" autocomplete="off" oninput="checkSubmit()" />
+      <button class="btn btn-primary" id="btn-submit" onclick="submitVote()" disabled>Enviar mi voto ✓</button>
+    </div>
+
+    <button class="btn btn-secondary" onclick="showView('home')" style="margin-top:8px">← Volver</button>
+  </div>
+</div>
+
+<!-- GRACIAS -->
+<div id="view-thanks" class="view hidden">
+  <div class="card narrow" style="text-align:center">
+    <div style="font-size:52px;margin-bottom:16px">✅</div>
+    <h2>¡Gracias!</h2>
+    <p class="sub">Tu voto fue registrado de forma anónima.</p>
+    <button class="btn btn-primary" onclick="showView('home')">Volver al inicio</button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="view-login" class="view hidden">
+  <div class="card narrow">
+    <div style="font-size:40px;margin-bottom:12px">🔒</div>
+    <h2>Ver resultados</h2>
+    <p class="sub">Ingresá la contraseña para acceder al reporte.</p>
+    <input type="password" id="pass-input" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()" />
+    <div class="err-msg" id="pass-err">Contraseña incorrecta.</div>
+    <button class="btn btn-primary" onclick="doLogin()">Ingresar</button>
+    <button class="btn btn-secondary" onclick="showView('home')" style="margin-top:6px">← Volver</button>
+  </div>
+</div>
+
+<!-- REPORT -->
+<div id="view-report" class="hidden" style="min-height:100vh;padding:24px 14px">
+  <div class="report-inner">
+    <div class="report-top">
+      <h2>📊 Resultados</h2>
+      <p id="report-meta"></p>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-n" id="r-votes">0</div><div class="stat-l">votos totales</div></div>
+      <div class="stat-box"><div class="stat-n" id="r-provs">0</div><div class="stat-l">provincias</div></div>
+    </div>
+    <div id="report-container"></div>
+    <p class="footer-note">Datos anónimos · Pablo Cordonet 2025</p>
+  </div>
+</div>
+
+<script>
+var PROJECT = "encuesta-transport-andreani";
+var COL     = "encuesta_cordonet";
+var API_KEY = "AIzaSyC1C07MNDs4uOsvnAMwDSz-Dyn3uqZd9PM";
+var BASE    = "https://firestore.googleapis.com/v1/projects/" + PROJECT + "/databases/(default)/documents/";
+var PWD     = "cordonet2024";
+
+function fsAdd(data) {
+  var fields = {};
+  Object.keys(data).forEach(function(k) { fields[k] = { stringValue: String(data[k]) }; });
+  return fetch(BASE + COL + "?key=" + API_KEY, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fields: fields })
+  });
+}
+
+function fsGetAll() {
+  return fetch(BASE + COL + "?key=" + API_KEY + "&pageSize=500")
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.documents) return [];
+      return data.documents.map(function(doc) {
+        var f = doc.fields || {}, out = {};
+        Object.keys(f).forEach(function(k) { out[k] = f[k].stringValue || ""; });
+        return out;
+      });
+    }).catch(function() { return []; });
+}
+
+function onProvChange() {
+  var val = document.getElementById('prov-select').value;
+  if (val) {
+    document.getElementById('city-wrap').classList.add('show');
+  } else {
+    document.getElementById('city-wrap').classList.remove('show');
+  }
+  checkSubmit();
+}
+
+function checkSubmit() {
+  var prov = document.getElementById('prov-select').value;
+  var city = document.getElementById('city-input').value.trim();
+  document.getElementById('btn-submit').disabled = !prov || !city;
+}
+
+function submitVote() {
+  var prov = document.getElementById('prov-select').value;
+  var city = document.getElementById('city-input').value.trim();
+  if (!prov || !city) return;
+  var btn = document.getElementById('btn-submit');
+  btn.textContent = 'Enviando...'; btn.disabled = true;
+  var id = prov.toLowerCase().replace(/[áàä]/g,'a').replace(/[éèë]/g,'e').replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n').replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+  fsAdd({
+    province_id:   id,
+    province_name: prov,
+    city:          city.charAt(0).toUpperCase() + city.slice(1),
+    ts:            new Date().toISOString()
+  }).then(function() {
+    showView('thanks');
+  }).catch(function() {
+    btn.textContent = 'Enviar mi voto ✓'; btn.disabled = false;
+    alert('Error al enviar. Revisá tu conexión.');
+  });
+}
+
+function doLogin() {
+  var val = document.getElementById('pass-input').value;
+  if (val === PWD) {
+    document.getElementById('pass-err').classList.remove('show');
+    showView('report');
+    fsGetAll().then(renderReport);
+  } else {
+    document.getElementById('pass-err').classList.add('show');
+  }
+}
+
+function renderReport(votes) {
+  var total = votes.length;
+  document.getElementById('r-votes').textContent = total;
+  var provMap = {};
+  votes.forEach(function(v) {
+    if (!provMap[v.province_id]) provMap[v.province_id] = { name: v.province_name, count: 0, cities: {} };
+    provMap[v.province_id].count++;
+    var city = (v.city || '(sin ciudad)').trim();
+    provMap[v.province_id].cities[city] = (provMap[v.province_id].cities[city] || 0) + 1;
+  });
+  var sorted = Object.values(provMap).sort(function(a,b) { return b.count - a.count; });
+  document.getElementById('r-provs').textContent = sorted.length;
+  document.getElementById('report-meta').textContent = total + ' votos · ' + sorted.length + ' provincias · Tocá para ver ciudades';
+  var container = document.getElementById('report-container');
+  container.innerHTML = '';
+  var medals = ['m1','m2','m3'], labels = ['1°','2°','3°'];
+  sorted.forEach(function(p, i) {
+    var pct = total > 0 ? Math.round((p.count/total)*100) : 0;
+    var top3 = Object.entries(p.cities).sort(function(a,b){return b[1]-a[1];}).slice(0,3);
+    var citiesHtml = top3.length
+      ? top3.map(function(c,ci){ return '<div class="city-row"><div class="medal '+medals[ci]+'">'+labels[ci]+'</div><div class="city-name">'+c[0]+'</div><div class="city-votes">'+c[1]+' voto'+(c[1]>1?'s':'')+'</div></div>'; }).join('')
+      : '<p style="color:var(--muted);font-size:12px;text-align:center;padding:12px 0">Sin ciudades</p>';
+    var card = document.createElement('div');
+    card.className = 'rep-card';
+    card.innerHTML = '<div class="rep-header" onclick="this.closest(\'.rep-card\').classList.toggle(\'open\')"><div class="rep-rank">#'+(i+1)+'</div><div class="rep-name">'+p.name+'</div><div class="rep-bar-wrap"><div class="rep-bar-track"><div class="rep-bar-fill" style="width:'+pct+'%"></div></div><div class="rep-pct">'+pct+'%</div><div class="rep-count">'+p.count+' voto'+(p.count>1?'s':'')+'</div></div><div class="chevron">▼</div></div><div class="rep-cities">'+citiesHtml+'</div>';
+    container.appendChild(card);
+  });
+  if (!sorted.length) container.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--muted)">Todavía no hay votos.</div>';
+}
+
+function showView(view) {
+  ['home','survey','thanks','login','report'].forEach(function(v) {
+    var el = document.getElementById('view-'+v);
+    if (el) { el.classList.add('hidden'); el.style.display = ''; }
+  });
+  var target = document.getElementById('view-'+view);
+  if (target) { target.classList.remove('hidden'); if (view==='report') target.style.display='block'; }
+  if (view === 'survey') {
+    document.getElementById('prov-select').value = '';
+    document.getElementById('city-wrap').classList.remove('show');
+    document.getElementById('city-input').value = '';
+    document.getElementById('btn-submit').disabled = true;
+  }
+}
+
+fsGetAll().then(function(votes) {
+  var provs = {};
+  votes.forEach(function(v) { provs[v.province_id] = 1; });
+  document.getElementById('home-votes').textContent = votes.length || '0';
+  document.getElementById('home-provs').textContent = Object.keys(provs).length || '0';
+});
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>¿Dónde querés ver a Pablo Cordonet?</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
