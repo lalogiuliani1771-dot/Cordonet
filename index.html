@@ -87,7 +87,7 @@
       <div class="stat-box"><div class="stat-n" id="home-votes">–</div><div class="stat-l">votos</div></div>
       <div class="stat-box"><div class="stat-n" id="home-provs">–</div><div class="stat-l">provincias</div></div>
     </div>
-    <button class="btn btn-primary" onclick="showView('survey')">Votar ahora →</button>
+    <button class="btn btn-primary" onclick="startVote()">Votar ahora →</button>
     <button class="btn btn-secondary" onclick="showView('login')" style="margin-top:8px">Ver resultados 🔒</button>
   </div>
 </div>
@@ -172,6 +172,7 @@
       <div class="stat-box"><div class="stat-n" id="r-provs">0</div><div class="stat-l">provincias</div></div>
     </div>
     <div id="report-container"></div>
+    <button class="btn btn-secondary" onclick="resetVotes()" style="margin-top:16px;color:#f87171;border-color:#f87171;max-width:220px;margin-left:auto;margin-right:auto">🗑️ Resetear todos los votos</button>
     <p class="footer-note">Datos anónimos · Pablo Cordonet 2025</p>
   </div>
 </div>
@@ -182,6 +183,7 @@ var COL     = "encuesta_cordonet";
 var API_KEY = "AIzaSyC1C07MNDs4uOsvnAMwDSz-Dyn3uqZd9PM";
 var BASE    = "https://firestore.googleapis.com/v1/projects/" + PROJECT + "/databases/(default)/documents/";
 var PWD     = "cordonet2024";
+var VOTED_KEY = "cordonet_voted";
 
 function fsAdd(data) {
   var fields = {};
@@ -205,6 +207,32 @@ function fsGetAll() {
     }).catch(function() { return []; });
 }
 
+
+function fsDeleteAll() {
+  return fsGetAll().then(function(votes) {
+    // Get document names from raw fetch
+    return fetch(BASE + COL + "?key=" + API_KEY + "&pageSize=500")
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.documents) return;
+        var dels = data.documents.map(function(doc) {
+          var name = doc.name;
+          return fetch("https://firestore.googleapis.com/v1/" + name + "?key=" + API_KEY, { method: "DELETE" });
+        });
+        return Promise.all(dels);
+      });
+  });
+}
+
+
+function startVote() {
+  if (hasVoted()) {
+    alert('Ya votaste. Solo se permite un voto por dispositivo.');
+    return;
+  }
+  showView('survey');
+}
+
 function onProvChange() {
   var val = document.getElementById('prov-select').value;
   if (val) {
@@ -221,7 +249,11 @@ function checkSubmit() {
   document.getElementById('btn-submit').disabled = !prov || !city;
 }
 
+function hasVoted() { try { return localStorage.getItem(VOTED_KEY) === "1"; } catch(e) { return false; } }
+function markVoted() { try { localStorage.setItem(VOTED_KEY, "1"); } catch(e) {} }
+
 function submitVote() {
+  if (hasVoted()) { alert("Ya votaste. Solo se permite un voto por dispositivo."); return; }
   var prov = document.getElementById('prov-select').value;
   var city = document.getElementById('city-input').value.trim();
   if (!prov || !city) return;
@@ -234,6 +266,7 @@ function submitVote() {
     city:          city.charAt(0).toUpperCase() + city.slice(1),
     ts:            new Date().toISOString()
   }).then(function() {
+    markVoted();
     showView('thanks');
   }).catch(function() {
     btn.textContent = 'Enviar mi voto ✓'; btn.disabled = false;
@@ -281,6 +314,23 @@ function renderReport(votes) {
     container.appendChild(card);
   });
   if (!sorted.length) container.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--muted)">Todavía no hay votos.</div>';
+}
+
+
+function resetVotes() {
+  var pwd = prompt('Ingresá la contraseña para resetear los votos:');
+  if (pwd !== PWD) { alert('Contraseña incorrecta.'); return; }
+  if (!confirm('¿Seguro que querés borrar todos los votos? Esta acción no se puede deshacer.')) return;
+  fsDeleteAll().then(function() {
+    alert('Votos eliminados correctamente.');
+    showView('home');
+    fsGetAll().then(function(votes) {
+      document.getElementById('home-votes').textContent = '0';
+      document.getElementById('home-provs').textContent = '0';
+    });
+  }).catch(function() {
+    alert('Error al eliminar. Intentá de nuevo.');
+  });
 }
 
 function showView(view) {
