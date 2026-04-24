@@ -1,2 +1,0 @@
-# Cordonet
-Encuesta 

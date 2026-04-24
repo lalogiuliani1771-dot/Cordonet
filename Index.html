@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>¿Dónde querés ver a Pablo Cordonet?</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #06111f; --card: #0c1e33; --border: #1a3550;
+      --accent: #2d9cdb; --yellow: #f5d000; --ydim: #f5d00022;
+      --text: #ddeeff; --muted: #5a82a0; --danger: #f87171;
+    }
+    body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .view { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px 14px; }
+    .hidden { display: none !important; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 24px 20px; width: 100%; max-width: 440px; }
+    .card.narrow { max-width: 340px; }
+    .hero-tag { display: inline-block; background: var(--ydim); color: var(--yellow); border: 1px solid #f5d00044; border-radius: 20px; padding: 4px 14px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 14px; }
+    h1 { font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: .03em; line-height: 1.05; color: var(--yellow); margin-bottom: 10px; }
+    h2 { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--yellow); margin-bottom: 6px; }
+    .sub { color: var(--muted); font-size: 13px; line-height: 1.6; margin-bottom: 14px; }
+    .stats-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .stat-box { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px; text-align: center; }
+    .stat-n { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--yellow); }
+    .stat-l { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .btn { border: none; border-radius: 10px; padding: 12px 16px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s; width: 100%; margin-top: 8px; display: block; }
+    .btn-primary { background: var(--yellow); color: var(--bg); }
+    .btn-primary:disabled { opacity: .35; cursor: not-allowed; }
+    .btn-secondary { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    #map { width: 100%; height: 400px; border-radius: 12px; margin-bottom: 14px; border: 1px solid var(--border); }
+    .leaflet-container { background: #06111f !important; }
+    .sel-chip { display:none; align-items:center; gap:10px; background:var(--ydim); border:1.5px solid #f5d00044; border-radius:10px; padding:10px 14px; margin-bottom:10px; }
+    .sel-chip.show { display:flex; }
+    .sel-label { font-size:11px; color:var(--yellow); font-weight:600; }
+    .sel-name { font-size:14px; font-weight:700; color:var(--yellow); }
+    .city-wrap { display:none; }
+    .city-wrap.show { display:block; }
+    input[type="text"], input[type="password"] { width:100%; padding:12px 14px; background:var(--bg); border:1.5px solid var(--border); border-radius:10px; color:var(--text); font-size:15px; font-family:inherit; outline:none; margin-bottom:10px; }
+    input:focus { border-color:var(--accent); }
+    input::placeholder { color:#334f6a; }
+    .err-msg { color:var(--danger); font-size:13px; margin-bottom:8px; display:none; }
+    .err-msg.show { display:block; }
+    #view-report { min-height:100vh; padding:24px 14px; }
+    .report-inner { max-width:640px; margin:0 auto; }
+    .report-top h2 { font-family:'Bebas Neue',sans-serif; font-size:28px; color:var(--yellow); }
+    .report-top p { color:var(--muted); font-size:12px; margin:2px 0 14px; }
+    .rep-card { background:var(--card); border:1px solid var(--border); border-radius:12px; margin-bottom:6px; overflow:hidden; }
+    .rep-header { padding:13px 16px; display:flex; align-items:center; gap:10px; cursor:pointer; }
+    .rep-rank { font-family:'Bebas Neue',sans-serif; font-size:16px; color:var(--yellow); width:22px; flex-shrink:0; }
+    .rep-name { font-weight:700; color:var(--text); flex:1; font-size:13px; }
+    .rep-bar-wrap { display:flex; align-items:center; gap:6px; }
+    .rep-bar-track { width:50px; height:4px; background:var(--bg); border-radius:2px; overflow:hidden; }
+    .rep-bar-fill { height:100%; background:var(--accent); border-radius:2px; }
+    .rep-pct { font-size:12px; font-weight:700; color:var(--accent); min-width:28px; text-align:right; }
+    .rep-count { font-size:11px; color:var(--muted); min-width:44px; text-align:right; }
+    .chevron { color:var(--muted); font-size:10px; transition:transform .2s; }
+    .rep-card.open .chevron { transform:rotate(180deg); }
+    .rep-cities { display:none; padding:4px 16px 12px; border-top:1px solid #0a1828; }
+    .rep-card.open .rep-cities { display:block; }
+    .city-row { display:flex; align-items:center; gap:8px; padding:7px 0; border-top:1px solid #0a1828; }
+    .city-row:first-child { border-top:none; margin-top:6px; }
+    .medal { width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; flex-shrink:0; }
+    .m1 { background:#f5d00020; border:2px solid #f5d000; color:#f5d000; }
+    .m2 { background:#94a3b820; border:2px solid #94a3b8; color:#94a3b8; }
+    .m3 { background:#cd7c2f20; border:2px solid #cd7c2f; color:#cd7c2f; }
+    .city-name { flex:1; font-size:12px; color:var(--text); font-weight:600; }
+    .city-votes { font-size:11px; color:var(--muted); }
+    .footer-note { color:#1a3550; font-size:11px; text-align:center; margin-top:14px; padding-bottom:24px; }
+    .prov-tooltip { background:#0c1e33 !important; border:1px solid #f5d00066 !important; color:#f5d000 !important; font-weight:700; font-size:12px; box-shadow:none !important; }
+    .prov-tooltip::before { display:none !important; }
+  </style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="view-home" class="view">
+  <div class="card">
+    <div class="hero-tag">🗳️ Encuesta pública · Anónima</div>
+    <h1>¿Dónde te gustaría ver a Pablo Cordonet?</h1>
+    <p class="sub">Elegí una provincia y la ciudad. Tu voto es anónimo y forma parte del mapa de resultados.</p>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-n" id="home-votes">–</div><div class="stat-l">votos</div></div>
+      <div class="stat-box"><div class="stat-n" id="home-provs">–</div><div class="stat-l">provincias</div></div>
+    </div>
+    <button class="btn btn-primary" onclick="showView('survey')">Votar ahora →</button>
+    <button class="btn btn-secondary" onclick="showView('login')" style="margin-top:8px">Ver resultados 🔒</button>
+  </div>
+</div>
+
+<!-- SURVEY -->
+<div id="view-survey" class="view hidden" style="align-items:flex-start;padding-top:20px">
+  <div class="card">
+    <h2>¿En qué provincia?</h2>
+    <p class="sub" style="margin-bottom:10px">Tocá tu provincia en el mapa</p>
+    <div id="map"></div>
+    <div class="sel-chip" id="sel-chip">
+      <div style="font-size:20px">📍</div>
+      <div>
+        <div class="sel-label">Seleccionaste</div>
+        <div class="sel-name" id="sel-name">–</div>
+      </div>
+    </div>
+    <div class="city-wrap" id="city-wrap">
+      <input type="text" id="city-input" placeholder="¿En qué ciudad?" maxlength="60" autocomplete="off" oninput="checkSubmit()" />
+      <button class="btn btn-primary" id="btn-submit" onclick="submitVote()" disabled>Enviar mi voto ✓</button>
+    </div>
+    <button class="btn btn-secondary" onclick="showView('home')" style="margin-top:8px">← Volver</button>
+  </div>
+</div>
+
+<!-- GRACIAS -->
+<div id="view-thanks" class="view hidden">
+  <div class="card narrow" style="text-align:center">
+    <div style="font-size:52px;margin-bottom:16px">✅</div>
+    <h2>¡Gracias!</h2>
+    <p class="sub">Tu voto fue registrado de forma anónima.</p>
+    <button class="btn btn-primary" onclick="showView('home')">Volver al inicio</button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="view-login" class="view hidden">
+  <div class="card narrow">
+    <div style="font-size:40px;margin-bottom:12px">🔒</div>
+    <h2>Ver resultados</h2>
+    <p class="sub">Ingresá la contraseña para acceder al reporte.</p>
+    <input type="password" id="pass-input" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()" />
+    <div class="err-msg" id="pass-err">Contraseña incorrecta.</div>
+    <button class="btn btn-primary" onclick="doLogin()">Ingresar</button>
+    <button class="btn btn-secondary" onclick="showView('home')" style="margin-top:6px">← Volver</button>
+  </div>
+</div>
+
+<!-- REPORT -->
+<div id="view-report" class="hidden" style="min-height:100vh;padding:24px 14px">
+  <div class="report-inner">
+    <div class="report-top">
+      <h2>📊 Resultados</h2>
+      <p id="report-meta"></p>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-n" id="r-votes">0</div><div class="stat-l">votos totales</div></div>
+      <div class="stat-box"><div class="stat-n" id="r-provs">0</div><div class="stat-l">provincias</div></div>
+    </div>
+    <div id="report-container"></div>
+    <p class="footer-note">Datos anónimos · Pablo Cordonet 2025</p>
+  </div>
+</div>
+<script>
+var PROJECT = "encuesta-transport-andreani";
+var COL     = "encuesta_cordonet";
+var API_KEY = "AIzaSyC1C07MNDs4uOsvnAMwDSz-Dyn3uqZd9PM";
+var BASE    = "https://firestore.googleapis.com/v1/projects/" + PROJECT + "/databases/(default)/documents/";
+var PWD     = "cordonet2024";
+
+function fsAdd(data) {
+  var fields = {};
+  Object.keys(data).forEach(function(k) { fields[k] = { stringValue: String(data[k]) }; });
+  return fetch(BASE + COL + "?key=" + API_KEY, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fields: fields })
+  });
+}
+function fsGetAll() {
+  return fetch(BASE + COL + "?key=" + API_KEY + "&pageSize=500")
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.documents) return [];
+      return data.documents.map(function(doc) {
+        var f = doc.fields || {}, out = {};
+        Object.keys(f).forEach(function(k) { out[k] = f[k].stringValue || ""; });
+        return out;
+      });
+    }).catch(function() { return []; });
+}
+
+var selected = null;
+var mapInited = false;
+var leafMap = null;
+var selectedLayer = null;
+
+var STYLE_DEFAULT  = { fillColor:"#0d2035", fillOpacity:0.9, color:"#2a5070", weight:1 };
+var STYLE_HOVER    = { fillColor:"#1a4060", fillOpacity:0.9, color:"#4a90c0", weight:1.5 };
+var STYLE_SELECTED = { fillColor:"#f5d000", fillOpacity:0.95, color:"#fde047", weight:2 };
+
+function initMap() {
+  if (mapInited) return;
+  mapInited = true;
+  leafMap = L.map('map', { center:[-38,-65], zoom:4, zoomControl:true, attributionControl:false, scrollWheelZoom:false });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', { maxZoom:10 }).addTo(leafMap);
+  fetch("https://cdn.jsdelivr.net/gh/deldersveld/topojson@master/countries/argentina/argentina-provinces.json")
+    .then(function(r) { return r.json(); })
+    .then(function(topo) {
+      var key = Object.keys(topo.objects)[0];
+      var geo = topojson.feature(topo, topo.objects[key]);
+      addProvinces(geo);
+    }).catch(function() {
+      document.getElementById('map').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#5a82a0;font-size:13px;padding:20px;text-align:center">No se pudo cargar el mapa. Revisá tu conexión.</div>';
+    });
+}
+
+function addProvinces(geo) {
+  var layer = L.geoJSON(geo, {
+    style: STYLE_DEFAULT,
+    onEachFeature: function(feature, layer) {
+      var name = feature.properties.NAME_1 || feature.properties.name || "Provincia";
+      if (name.indexOf("Ciudad") !== -1) name = "CABA";
+      if (name.indexOf("Tierra") !== -1) name = "Tierra del Fuego";
+      var id = name.toLowerCase().replace(/[áàä]/g,'a').replace(/[éèë]/g,'e').replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n').replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+      layer.on({
+        mouseover: function() { if (layer !== selectedLayer) layer.setStyle(STYLE_HOVER); layer.bindTooltip(name,{permanent:false,direction:'center',className:'prov-tooltip'}).openTooltip(); },
+        mouseout:  function() { if (layer !== selectedLayer) layer.setStyle(STYLE_DEFAULT); layer.closeTooltip(); },
+        click: function() {
+          if (selectedLayer) selectedLayer.setStyle(STYLE_DEFAULT);
+          layer.setStyle(STYLE_SELECTED);
+          selectedLayer = layer;
+          selected = { id:id, name:name };
+          document.getElementById('sel-name').textContent = name;
+          document.getElementById('sel-chip').classList.add('show');
+          document.getElementById('city-wrap').classList.add('show');
+          document.getElementById('city-input').value = '';
+          checkSubmit();
+          setTimeout(function() { document.getElementById('city-input').scrollIntoView({behavior:'smooth',block:'center'}); }, 200);
+        }
+      });
+    }
+  }).addTo(leafMap);
+  leafMap.fitBounds(layer.getBounds());
+}
+
+function checkSubmit() {
+  document.getElementById('btn-submit').disabled = !selected || !document.getElementById('city-input').value.trim();
+}
+
+function submitVote() {
+  var city = document.getElementById('city-input').value.trim();
+  if (!selected || !city) return;
+  var btn = document.getElementById('btn-submit');
+  btn.textContent = 'Enviando...'; btn.disabled = true;
+  fsAdd({ province_id:selected.id, province_name:selected.name, city:city.charAt(0).toUpperCase()+city.slice(1), ts:new Date().toISOString() })
+    .then(function() { showView('thanks'); })
+    .catch(function() { btn.textContent='Enviar mi voto ✓'; btn.disabled=false; alert('Error al enviar.'); });
+}
+
+function doLogin() {
+  if (document.getElementById('pass-input').value === PWD) {
+    document.getElementById('pass-err').classList.remove('show');
+    showView('report');
+    fsGetAll().then(renderReport);
+  } else {
+    document.getElementById('pass-err').classList.add('show');
+  }
+}
+
+function renderReport(votes) {
+  var total = votes.length;
+  document.getElementById('r-votes').textContent = total;
+  var provMap = {};
+  votes.forEach(function(v) {
+    if (!provMap[v.province_id]) provMap[v.province_id] = { name:v.province_name, count:0, cities:{} };
+    provMap[v.province_id].count++;
+    var city = (v.city||'(sin ciudad)').trim();
+    provMap[v.province_id].cities[city] = (provMap[v.province_id].cities[city]||0)+1;
+  });
+  var sorted = Object.values(provMap).sort(function(a,b){return b.count-a.count;});
+  document.getElementById('r-provs').textContent = sorted.length;
+  document.getElementById('report-meta').textContent = total+' votos · '+sorted.length+' provincias · Tocá para ver ciudades';
+  var container = document.getElementById('report-container');
+  container.innerHTML = '';
+  var medals=['m1','m2','m3'], labels=['1°','2°','3°'];
+  sorted.forEach(function(p,i) {
+    var pct = total>0?Math.round((p.count/total)*100):0;
+    var top3 = Object.entries(p.cities).sort(function(a,b){return b[1]-a[1];}).slice(0,3);
+    var citiesHtml = top3.length ? top3.map(function(c,ci){ return '<div class="city-row"><div class="medal '+medals[ci]+'">'+labels[ci]+'</div><div class="city-name">'+c[0]+'</div><div class="city-votes">'+c[1]+' voto'+(c[1]>1?'s':'')+'</div></div>'; }).join('') : '<p style="color:var(--muted);font-size:12px;text-align:center;padding:12px 0">Sin ciudades</p>';
+    var card = document.createElement('div');
+    card.className = 'rep-card';
+    card.innerHTML = '<div class="rep-header" onclick="this.closest(\'.rep-card\').classList.toggle(\'open\')"><div class="rep-rank">#'+(i+1)+'</div><div class="rep-name">'+p.name+'</div><div class="rep-bar-wrap"><div class="rep-bar-track"><div class="rep-bar-fill" style="width:'+pct+'%"></div></div><div class="rep-pct">'+pct+'%</div><div class="rep-count">'+p.count+' voto'+(p.count>1?'s':'')+'</div></div><div class="chevron">▼</div></div><div class="rep-cities">'+citiesHtml+'</div>';
+    container.appendChild(card);
+  });
+  if (!sorted.length) container.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--muted)">Todavía no hay votos.</div>';
+}
+
+function showView(view) {
+  ['home','survey','thanks','login','report'].forEach(function(v) {
+    var el = document.getElementById('view-'+v);
+    if (el) { el.classList.add('hidden'); el.style.display=''; }
+  });
+  var target = document.getElementById('view-'+view);
+  if (target) { target.classList.remove('hidden'); if (view==='report') target.style.display='block'; }
+  if (view==='survey') {
+    selected=null; selectedLayer=null;
+    document.getElementById('sel-chip').classList.remove('show');
+    document.getElementById('city-wrap').classList.remove('show');
+    initMap();
+    setTimeout(function(){ if(leafMap) leafMap.invalidateSize(); },100);
+  }
+}
+
+fsGetAll().then(function(votes) {
+  var provs={};
+  votes.forEach(function(v){provs[v.province_id]=1;});
+  document.getElementById('home-votes').textContent = votes.length||'0';
+  document.getElementById('home-provs').textContent = Object.keys(provs).length||'0';
+});
+</script>
+</body>
+</html>
